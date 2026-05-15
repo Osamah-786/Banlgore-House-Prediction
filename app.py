@@ -1,8 +1,6 @@
-from flask import Flask, render_template, request
+import streamlit as st
 import pandas as pd
 import pickle
-
-app = Flask(__name__)
 
 # Load cleaned data
 data = pd.read_csv("Cleaned_data.csv")
@@ -10,36 +8,35 @@ data = pd.read_csv("Cleaned_data.csv")
 # Load trained model
 model = pickle.load(open("RidgeModel.pkl", "rb"))
 
+# Title
+st.title("🏠 Bangalore House Price Prediction")
 
-@app.route("/")
-def index():
-    locations = sorted(data["location"].unique())
+st.write("Enter house details below")
 
-    return render_template(
-        "index.html",
-        locations=locations
-    )
+# Location dropdown
+locations = sorted(data["location"].unique())
 
+location = st.selectbox("Choose Location", locations)
 
-@app.route("/predict", methods=["POST"])
-def predict():
-    location = request.form.get("location")
-    bhk = int(request.form.get("bhk"))
-    bath = int(request.form.get("bath"))
-    sqft = float(request.form.get("sqft"))
+bhk = st.number_input("BHK", min_value=1, max_value=20, step=1)
 
-    # create size column
+bath = st.number_input("Bathrooms", min_value=1, max_value=20, step=1)
+
+sqft = st.number_input("Total Square Feet", min_value=100.0)
+
+# Predict button
+if st.button("Predict Price"):
+
+    # Create size column
     size = str(bhk) + " BHK"
 
+    # Create dataframe
     input_data = pd.DataFrame(
         [[location, size, sqft, bath, bhk]],
         columns=["location", "size", "total_sqft", "bath", "bhk"]
     )
 
+    # Prediction
     prediction = model.predict(input_data)[0]
 
-    return str(round(prediction, 2))
-
-
-if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+    st.success(f"Estimated Price: ₹ {round(prediction, 2)} Lakhs")
